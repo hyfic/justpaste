@@ -13,6 +13,10 @@ struct MenuBarView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
+            Text("Shortcut: ⌘⌥V")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
             Divider()
 
             if model.isTyping {
@@ -23,6 +27,17 @@ struct MenuBarView: View {
                 Button("Type Clipboard") {
                     model.typeClipboard()
                 }
+            }
+
+            if model.isAccessibilityTrusted {
+                Label("Accessibility enabled", systemImage: "checkmark.shield")
+                    .font(.caption)
+                    .foregroundStyle(.green)
+            } else {
+                Button("Enable Accessibility") {
+                    model.requestAccessibilityPermission()
+                }
+                .font(.caption)
             }
 
             Button("Quit JustPaste") {

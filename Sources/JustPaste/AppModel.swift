@@ -1,14 +1,35 @@
 import Foundation
+import Carbon.HIToolbox
 
 @MainActor
 final class AppModel: ObservableObject {
     @Published private(set) var isTyping = false
     @Published private(set) var statusMessage = "Ready"
+    @Published private(set) var isAccessibilityTrusted = false
 
     private let clipboard = ClipboardService()
     private let typingEngine = TypingEngine()
+    private let accessibility = AccessibilityService()
+    private var globalHotKey: GlobalHotKey?
+
+    init() {
+        refreshAccessibilityStatus()
+        registerGlobalHotKey()
+    }
 
     func typeClipboard() {
+        guard isAccessibilityTrusted else {
+            statusMessage = "Accessibility permission is required"
+            requestAccessibilityPermission()
+            return
+        }
+
+        if let focusedElement = accessibility.focusedElementInfo(),
+           !focusedElement.looksLikeTextInput {
+            statusMessage = "No editable field is focused"
+            return
+        }
+
         guard let text = clipboard.readText(), !text.isEmpty else {
             statusMessage = "The clipboard has no text"
             return
@@ -46,5 +67,30 @@ final class AppModel: ObservableObject {
         guard isTyping else { return }
         typingEngine.cancel()
         statusMessage = "Cancelling…"
+    }
+
+    func refreshAccessibilityStatus() {
+        accessibility.refreshStatus()
+        isAccessibilityTrusted = accessibility.isTrusted
+    }
+
+    func requestAccessibilityPermission() {
+        accessibility.requestPermission()
+        isAccessibilityTrusted = accessibility.isTrusted
+    }
+
+    private func registerGlobalHotKey() {
+        do {
+            globalHotKey = try GlobalHotKey(
+                keyCode: UInt32(kVK_ANSI_V),
+                modifiers: UInt32(cmdKey | optionKey)
+            ) { [weak self] in
+                Task { @MainActor in
+                    self?.typeClipboard()
+                }
+            }
+        } catch {
+            statusMessage = "Global shortcut unavailable"
+        }
     }
 }
