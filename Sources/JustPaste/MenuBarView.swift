@@ -13,7 +13,7 @@ struct MenuBarView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            Text("Shortcut: ⌘⌥V")
+            Text("Shortcut: \(model.shortcut.displayName)")
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
@@ -38,6 +38,20 @@ struct MenuBarView: View {
                     model.requestAccessibilityPermission()
                 }
                 .font(.caption)
+            }
+
+            if #available(macOS 14.0, *) {
+                SettingsLink {
+                    Text("Settings…")
+                }
+            } else {
+                Button("Settings…") {
+                    NSApp.sendAction(
+                        Selector(("showSettingsWindow:")),
+                        to: nil,
+                        from: nil
+                    )
+                }
             }
 
             Button("Quit JustPaste") {
